@@ -104,6 +104,7 @@ def combineAll():
             data = re.sub(r'&amp;', '', data)
             data = re.sub(r'[? ]{2,}', ' ', data)
             data = re.sub(r'[. ]{3,}', '... ', data)
+            data = re.sub(r'[^\w\s]',' ',data)
             data = re.sub(r'(\n)|(\s{2,})', ' ', data)
             outfile.write('%s' %(data))
 
