@@ -1,0 +1,3 @@
+trump_pre_election_speeches.txt is a combination of two trump pre-election speech datasets from https://github.com/PedramNavid/trump_speeches and https://github.com/unendin/Trump_Campaign_Corpus
+
+The scraper gathers speeches of donald trump as president from the website https://www.presidency.ucsb.edu and also gathers his tweets from from http://www.trumptwitterarchive.com
