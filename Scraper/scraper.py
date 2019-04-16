@@ -100,13 +100,14 @@ def combineAll():
         with codecs.open('../Data/tempfile.txt', 'rb', encoding='utf8') as infile:
             data = infile.read()
             data = re.sub(r'(AUDIENCE MEMBER:).*(MR. TRUMP:)', '', data)
-            data = re.sub(r'([ ]*--[ ]*){2,}', ' -- ', data)
+            data = re.sub(r'(DONALD TRUMP)( JR)?', '', data)
+            #data = re.sub(r'([ ]*--[ ]*){2,}', ' -- ', data)
             data = re.sub(r'&amp;', '', data)
-            data = re.sub(r'[? ]{2,}', ' ', data)
-            data = re.sub(r'[. ]{3,}', '... ', data)
-            data = re.sub(r'[^\w\s]',' ',data)
+            #data = re.sub(r'[? ]{2,}', ' ', data)
+            #data = re.sub(r'[. ]{3,}', '... ', data)
+            data = re.sub(r'[^\w\s]','',data)
             data = re.sub(r'(\n)|(\s{2,})', ' ', data)
-            outfile.write('%s' %(data))
+            outfile.write('%s' %(data.lower()))
 
 def cleanUp():
     dataFiles = glob.glob('../Data/Sorted/*')
