@@ -85,7 +85,10 @@ def readTweets():
             epochTweetTime = calendar.timegm(time.strptime(tweet["created_at"], '%a %b %d %H:%M:%S %z %Y'))     #convert article time to time since epoch
             filename = createFilename(str(epochTweetTime))
             with codecs.open(filename, 'w', encoding='utf8') as outfile:
-                outfile.write(' %s ' %(re.sub(r"http\S+", "", tweet["text"])))
+                tweetText = re.sub(r"http\S+", "", tweet["text"])
+                tweetText = re.sub(r'@barackobama', ' barack obama', tweetText)
+                tweetText = re.sub(r'(?<=[a-zA-Z0-9-_\.])*[@#]([A-Za-z0-9_-]+)', '', tweetText)
+                outfile.write(' %s ' %(tweetText))
 
 
 def combineAll():
@@ -103,10 +106,12 @@ def combineAll():
             data = re.sub(r'(DONALD TRUMP)( JR)?', '', data)
             #data = re.sub(r'([ ]*--[ ]*){2,}', ' -- ', data)
             data = re.sub(r'&amp;', '', data)
+            data = re.sub(r'[\(\[].*?[\)\]]', '', data) #remove parenthesis
             #data = re.sub(r'[? ]{2,}', ' ', data)
             #data = re.sub(r'[. ]{3,}', '... ', data)
-            data = re.sub(r'[^\w\s]','',data)
-            data = re.sub(r'(\n)|(\s{2,})', ' ', data)
+            data = re.sub(r'[^\w\s]','',data)           #remove punctuation
+            data = re.sub(r'\s[^ai]\s',' ',data)        #remove floating letters
+            data = re.sub(r'(\n)|(\s{2,})', ' ', data)  #remove extra spaces
             outfile.write('%s' %(data.lower()))
 
 def cleanUp():
