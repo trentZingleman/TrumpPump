@@ -27,7 +27,7 @@ def createFilename(filename):
 
 #retreive all links of Trump's public speeches
 def getLinks():
-    baseUrl = 'https://www.presidency.ucsb.edu/advanced-search?field-keywords=&field-keywords2=&field-keywords3=&from%5Bdate%5D=&to%5Bdate%5D=&person2=200301&category2%5B0%5D=65&category2%5B1%5D=64&category2%5B2%5D=55&category2%5B3%5D=52&category2%5B4%5D=74&category2%5B5%5D=78&category2%5B6%5D=76&category2%5B7%5D=51&category2%5B8%5D=57&category2%5B9%5D=49&category2%5B10%5D=48&category2%5B11%5D=8&category2%5B12%5D=54&category2%5B13%5D=68&items_per_page=100&page='
+    baseUrl = 'https://www.presidency.ucsb.edu/advanced-search?field-keywords=&field-keywords2=&field-keywords3=&from%5Bdate%5D=&to%5Bdate%5D=&person2=200301&category2%5B0%5D=65&category2%5B1%5D=64&category2%5B2%5D=55&category2%5B3%5D=52&category2%5B4%5D=46&category2%5B5%5D=74&category2%5B6%5D=78&category2%5B7%5D=76&category2%5B8%5D=73&category2%5B9%5D=51&category2%5B10%5D=57&category2%5B11%5D=49&category2%5B12%5D=48&category2%5B13%5D=8&category2%5B14%5D=54&category2%5B15%5D=45&category2%5B16%5D=68&category2%5B17%5D=47&category2%5B18%5D=11&category2%5B19%5D=12&items_per_page=100&order=field_docs_start_date_time_value&sort=desc&page='
     
     searchResults = []
     while len(searchResults) == 0:      #sometimes the wont respond to the search results so try until a we get a proper responce:
@@ -40,12 +40,13 @@ def getLinks():
         htmlData = htmlData.split('</thead>')[1]                        #remove everything above the section that contains the links we want
         htmlData = htmlData.split('<div class=\"text-center\">')[0]     #remove everything below the section that contains the links we want
         htmlData = htmlData.replace('<a href=\"/people/president/donald-j-trump\">Donald J. Trump</a>','')      #remove all instances of this hyperlink so the only ones left are the ones we want
-        links += [link for link in re.findall(r'(?<=<a href=")[^"]*', htmlData) if 'notice' not in link and 'joint-statement' not in link]            #now extract all links to Trump's public speeches and add them to the list, excluding notices
-    links.append('/documents/address-before-joint-session-the-congress-the-state-the-union-26')     #adding this too, it didnt get found in the search query apparently
+        #now extract all links to Trump's public speeches and add them to the list, excluding these things:
+        links += [link for link in re.findall(r'(?<=<a href=")[^"]*', htmlData) if 'notice' not in link and 'joint-statement' not in link and 'statement-administration-policy' not in link and 'background-briefing' not in link and 'press-briefing' not in link and 'press-call press-gaggle' not in link and 'off-camera-briefing' not in link and 'background-conference-call' not in link]            
     return links
 
 
 def scrape(links):
+    endWordDict = {}
     baseUrl = 'https://www.presidency.ucsb.edu'
     filterToArticle = re.compile('<div class="field-docs-content">(.*?)</div>', re.DOTALL)
     peopleCounter = re.compile(r'<([a-z]{1,6})>(?i:PRESIDENT DONALD TRUMP|The President|President Trump)[.:]*\s?</\1>[.:]*')
@@ -75,20 +76,41 @@ def scrape(links):
                 htmlData = re.sub(r'<[/]?[a-z]{1,6}>', '', htmlData)
             
             htmlData = re.sub(r'(\n)|(\s{2,})', ' ', htmlData)       #remove the spaces
+            endWords = re.findall(r'\s\w+\.', htmlData)
+            for endWord in endWords:
+                lastWord = endWord[1:-1].lower()
+                if len(lastWord) > 1:
+                    if lastWord not in endWordDict:
+                        endWordDict[lastWord] = 1
+                    else:
+                        endWordDict[lastWord] += 1
             outfile.write(' %s ' %(htmlData))
+    with open('stopwords.txt', 'w') as stopWordsOutfile:
+        for endWord, wordFreq in endWordDict.items():
+            if wordFreq >= 50:
+                stopWordsOutfile.write('%s\n' %(endWord))
+    #with open('data.json', 'w') as wordFreqOutfile:
+        #json.dump(endWordDict, wordFreqOutfile)
 
 
 def readTweets():
+    counter = 0
+    total = 0
     with open('../Data/tweets/trumpTweets.JSON') as infile:
         data = json.load(infile)
         for tweet in tqdm(data["tweets"], desc="Reading Donald Trump's Tweets"):
-            epochTweetTime = calendar.timegm(time.strptime(tweet["created_at"], '%a %b %d %H:%M:%S %z %Y'))     #convert article time to time since epoch
-            filename = createFilename(str(epochTweetTime))
-            with codecs.open(filename, 'w', encoding='utf8') as outfile:
-                tweetText = re.sub(r"http\S+", "", tweet["text"])
-                tweetText = re.sub(r'@barackobama', ' barack obama', tweetText)
-                tweetText = re.sub(r'(?<=[a-zA-Z0-9-_\.])*[@#]([A-Za-z0-9_-]+)', '', tweetText)
-                outfile.write(' %s ' %(tweetText))
+            tweetText = re.sub(r"http\S+", "", tweet["text"])
+            tweetText = re.sub(r'@barackobama', ' barack obama', tweetText)
+            tweetText = re.sub(r'(?<=[a-zA-Z0-9-_\.])*[@#]([A-Za-z0-9_-]+)', '', tweetText)
+            if len(tweetText) > 0:
+                counter += 1
+                total += len(tweetText.split())
+                epochTweetTime = calendar.timegm(time.strptime(tweet["created_at"], '%a %b %d %H:%M:%S %z %Y'))     #convert article time to time since epoch
+                filename = createFilename(str(epochTweetTime))
+                with codecs.open(filename, 'w', encoding='utf8') as outfile:
+                    outfile.write(' %s ' %(tweetText))
+    with codecs.open('avgWordsPerTweet.txt', 'w', encoding='utf8') as wordTotalFile:
+        wordTotalFile.write('Average number of words per tweet is %f' %(float(total)/counter))
 
 
 def combineAll():
